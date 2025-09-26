@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בדיקת בסיס נתונים - MyFiles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold text-center mb-6">בדיקת בסיס נתונים</h1>
+        
+        <!-- Database Connection Test -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">בדיקת חיבור לבסיס נתונים</h2>
+            <button onclick="testDatabaseConnection()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                בדוק חיבור DB
+            </button>
+            <div id="db-result" class="mt-4 p-4 bg-gray-50 rounded hidden"></div>
+        </div>
+
+        <!-- User Registration Test -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">בדיקת רישום משתמש</h2>
+            <div class="space-y-3">
+                <input type="email" id="test-email" placeholder="אימייל לבדיקה" class="w-full p-2 border rounded" value="test@example.com">
+                <input type="password" id="test-password" placeholder="סיסמה" class="w-full p-2 border rounded" value="123456">
+                <input type="text" id="test-name" placeholder="שם מלא" class="w-full p-2 border rounded" value="משתמש בדיקה">
+                <button onclick="testRegister()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    רשום משתמש בדיקה
+                </button>
+            </div>
+            <div id="register-result" class="mt-4 p-4 bg-gray-50 rounded hidden"></div>
+        </div>
+
+        <!-- Login Test -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">בדיקת התחברות</h2>
+            <button onclick="testLogin()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                התחבר עם משתמש הבדיקה
+            </button>
+            <div id="login-result" class="mt-4 p-4 bg-gray-50 rounded hidden"></div>
+        </div>
+
+        <!-- Tables Check -->
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">בדיקת טבלאות בסיס הנתונים</h2>
+            <button onclick="checkTables()" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                בדוק טבלאות
+            </button>
+            <div id="tables-result" class="mt-4 p-4 bg-gray-50 rounded hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+
+        async function testDatabaseConnection() {
+            const resultDiv = document.getElementById('db-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-blue-500">בודק חיבור...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/test-db`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold">✅ החיבור לבסיס הנתונים עובד!</div>
+                        <pre class="mt-2 text-sm">${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="text-red-600">❌ שגיאה: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ שגיאת רשת: ${error.message}</div>`;
+            }
+        }
+
+        async function testRegister() {
+            const resultDiv = document.getElementById('register-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-blue-500">רושם משתמש...</div>';
+            
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            const fullName = document.getElementById('test-name').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        email,
+                        password,
+                        fullName
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold">✅ רישום הצליח!</div>
+                        <div class="mt-2">משתמש: ${data.user.email}</div>
+                        <div>ID: ${data.user.id}</div>
+                    `;
+                    localStorage.setItem('authToken', data.token);
+                } else {
+                    resultDiv.innerHTML = `<div class="text-red-600">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ שגיאה: ${error.message}</div>`;
+            }
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-blue-500">מתחבר...</div>';
+            
+            const email = document.getElementById('test-email').value;
+            const password = document.getElementById('test-password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'login',
+                        email,
+                        password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold">✅ התחברות הצליחה!</div>
+                        <div class="mt-2">ברוך הבא: ${data.user.full_name}</div>
+                        <div>טוקן נשמר בזיכרון המקומי</div>
+                    `;
+                    localStorage.setItem('authToken', data.token);
+                } else {
+                    resultDiv.innerHTML = `<div class="text-red-600">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ שגיאה: ${error.message}</div>`;
+            }
+        }
+
+        async function checkTables() {
+            const resultDiv = document.getElementById('tables-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="text-blue-500">בודק טבלאות...</div>';
+            
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                resultDiv.innerHTML = '<div class="text-red-600">❌ עליך להתחבר קודם</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/check-tables`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold">✅ הטבלאות קיימות!</div>
+                        <div class="mt-2">מספר טבלאות: ${data.tables.length}</div>
+                        <div class="mt-2 text-sm">
+                            <strong>טבלאות:</strong><br>
+                            ${data.tables.map(t => `• ${t}`).join('<br>')}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="text-red-600">❌ ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ שגיאה: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

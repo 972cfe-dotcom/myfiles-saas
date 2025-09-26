@@ -24,6 +24,16 @@ export class DatabaseService {
     }
   }
 
+  // Get current time from database
+  static async getCurrentTime() {
+    try {
+      const result = await sql`SELECT NOW() as current_time`
+      return result[0]
+    } catch (error) {
+      handleDbError(error, 'get current time')
+    }
+  }
+
   // User operations
   static async createUser(userData) {
     try {
