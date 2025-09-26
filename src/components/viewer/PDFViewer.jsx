@@ -12,6 +12,7 @@ export default function PDFViewer({ fileId, fileName }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rotation, setRotation] = useState(0);
+  const [pageRendering, setPageRendering] = useState(false);
   const canvasRef = useRef(null);
   const [pdfJS, setPdfJS] = useState(null);
 
@@ -19,10 +20,14 @@ export default function PDFViewer({ fileId, fileName }) {
     const loadPDFJS = async () => {
       try {
         const pdfjsLib = await import('pdfjs-dist');
-        // Use the stable version of PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+        
+        // Use local worker file to avoid CDN issues
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.js';
+        console.log('PDF.js worker set to local file:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+        
         setPdfJS(pdfjsLib);
       } catch (error) {
+        console.error('PDF.js loading error:', error);
         setError(`שגיאה בטעינת PDF.js: ${error.message}`);
       }
     };
@@ -47,14 +52,27 @@ export default function PDFViewer({ fileId, fileName }) {
       setLoading(true);
       setError(null);
       
+      console.log('Loading PDF for fileId:', fileId);
       const fileData = await fileStorage.getFileBlob(fileId);
+      
+      if (!fileData || !fileData.blob) {
+        throw new Error('לא נמצא קובץ במערכת');
+      }
       
       if (fileData.blob.type !== 'application/pdf') {
         throw new Error('הקובץ אינו PDF');
       }
       
       const arrayBuffer = await fileData.blob.arrayBuffer();
-      const pdfDocument = await pdfJS.getDocument({ data: arrayBuffer }).promise;
+      console.log('PDF arrayBuffer size:', arrayBuffer.byteLength);
+      
+      const loadingTask = pdfJS.getDocument({ 
+        data: arrayBuffer,
+        verbosity: 0 // Reduce console noise
+      });
+      
+      const pdfDocument = await loadingTask.promise;
+      console.log('PDF loaded successfully, pages:', pdfDocument.numPages);
       
       setPdf(pdfDocument);
       setTotalPages(pdfDocument.numPages);
@@ -62,19 +80,36 @@ export default function PDFViewer({ fileId, fileName }) {
       
     } catch (error) {
       console.error('Error loading PDF:', error);
-      setError(`שגיאה בטעינת PDF: ${error.message}`);
+      
+      // More user-friendly error messages
+      let errorMessage = 'שגיאה בטעינת PDF';
+      if (error.message.includes('Invalid PDF')) {
+        errorMessage = 'קובץ PDF פגום או לא תקין';
+      } else if (error.message.includes('Worker')) {
+        errorMessage = 'בעיה בטעינת מנוע PDF. אנא רענן את הדף';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'בעיית רשת. בדוק את החיבור לאינטרנט';
+      }
+      
+      setError(`${errorMessage}: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   const renderPage = async () => {
-    if (!pdf || !canvasRef.current) return;
+    if (!pdf || !canvasRef.current || pageRendering) return;
 
     try {
+      setPageRendering(true);
+      console.log(`Rendering page ${currentPage} of ${totalPages}`);
+      
       const page = await pdf.getPage(currentPage);
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
+
+      // Clear previous content
+      context.clearRect(0, 0, canvas.width, canvas.height);
 
       // Calculate viewport with scale and rotation
       let viewport = page.getViewport({ scale, rotation });
@@ -87,11 +122,23 @@ export default function PDFViewer({ fileId, fileName }) {
         viewport: viewport,
       };
 
-      await page.render(renderContext).promise;
+      const renderTask = page.render(renderContext);
+      await renderTask.promise;
+      console.log('Page rendered successfully');
       
     } catch (error) {
       console.error('Error rendering page:', error);
-      setError(`שגיאה בהצגת העמוד: ${error.message}`);
+      
+      // More specific error handling
+      if (error.message.includes('Worker')) {
+        setError(`בעיה עם PDF Worker. אנא רענן את הדף ונסה שוב.`);
+      } else if (error.message.includes('InvalidPDFException')) {
+        setError('קובץ PDF פגום');
+      } else {
+        setError(`שגיאה בהצגת העמוד ${currentPage}: ${error.message}`);
+      }
+    } finally {
+      setPageRendering(false);
     }
   };
 
@@ -143,9 +190,14 @@ export default function PDFViewer({ fileId, fileName }) {
           <FileText className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-red-700 mb-2">שגיאה בצפייה במסמך</h3>
           <p className="text-red-600 mb-4">{error}</p>
-          <Button variant="outline" onClick={loadPDF}>
-            נסה שוב
-          </Button>
+          <div className="space-y-2">
+            <Button variant="outline" onClick={loadPDF} disabled={loading}>
+              {loading ? 'טוען...' : 'נסה שוב'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+              רענן דף
+            </Button>
+          </div>
         </Card>
       </div>
     );
