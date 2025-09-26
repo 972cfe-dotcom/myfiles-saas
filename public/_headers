@@ -1,8 +1,14 @@
-# Set correct MIME types for JavaScript files
-/assets/*.js
+# Fix MIME type issues for Cloudflare Pages
+/assets/*
   Content-Type: application/javascript
 
-# Set correct MIME type for CSS files  
+/*.js
+  Content-Type: application/javascript
+
+/*.jsx  
+  Content-Type: application/javascript
+
+# CSS files
 /assets/*.css
   Content-Type: text/css
 
@@ -11,3 +17,5 @@
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
