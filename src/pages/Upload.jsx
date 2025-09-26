@@ -142,7 +142,8 @@ export default function UploadPage() {
           document_number: generateDocumentNumber(),
           original_filename: fileItem.file.name,
           file_url: file_url,
-          file_type: fileItem.file.type.startsWith('image/') ? 'image' : 'pdf',
+          stored_file_id: uploadResult.id, // Store the file ID for retrieval
+          file_type: fileItem.file.type.startsWith('image/') ? 'image' : (fileItem.file.type === 'application/pdf' ? 'pdf' : 'other'),
           file_size: fileItem.file.size,
           processing_status: "processing",
           tags: [], // Initialize tags array

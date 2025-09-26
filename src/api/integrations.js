@@ -1,57 +1,103 @@
-// Mock integrations for standalone app
+import { fileStorage } from '../utils/fileStorage.js';
+
+// Real integrations using actual file storage
 export const Core = {
-  // Mock core functionality
+  // Core functionality
 };
 
-// Mock file upload functionality 
+// Real file upload functionality using IndexedDB
 export const UploadFile = async (file) => {
   // Validate file input
   if (!file || !(file instanceof File)) {
     throw new Error('Invalid file provided');
   }
   
-  // Create object URL safely
-  let fileUrl;
-  try {
-    fileUrl = URL.createObjectURL(file);
-  } catch (error) {
-    console.warn('Could not create object URL, using placeholder:', error);
-    fileUrl = '/placeholder-file.png'; // Fallback URL
-  }
+  console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
   
-  // Return mock upload result
-  return {
-    id: Date.now().toString(),
-    file_name: file.name,
-    size: file.size,
-    file_type: file.type,
-    url: fileUrl,
-    created_at: new Date().toISOString()
-  };
+  try {
+    // Store file in IndexedDB
+    const storedFile = await fileStorage.storeFile(file);
+    
+    console.log('File stored successfully:', storedFile.id);
+    
+    return {
+      id: storedFile.id,
+      file_name: storedFile.name,
+      size: storedFile.size,
+      file_type: storedFile.type,
+      url: storedFile.url,
+      created_at: storedFile.created_at
+    };
+    
+  } catch (error) {
+    console.error('Error storing file:', error);
+    throw new Error(`שגיאה בהעלאת הקובץ: ${error.message}`);
+  }
 };
 
-// Mock data extraction
+// Real data extraction from uploaded files
 export const ExtractDataFromUploadedFile = async (params) => {
-  // Mock extraction based on file URL or file name
-  const fileName = params.file_url ? 'קובץ מועלה' : (params.file_name || 'קובץ לא ידוע');
-  
-  // Mock extraction - return basic file info with proper structure
-  return {
-    status: "success",
-    output: {
-      extracted_text: `טקסט מחולץ מהקובץ ${fileName}. זהו תוכן לדוגמה שמדמה חילוץ טקסט מקובץ PDF או תמונה.`,
-      document_type: "other",
-      organization: "חברה לדוגמה בע״מ",
-      amounts: [1500, 2000, 350],
-      dates: ["2024-09-26", "2024-09-20", "2024-09-15"]
-    },
-    metadata: {
-      pages: 1,
-      words: 100,
-      characters: 500,
-      confidence: 0.95
+  try {
+    let extractedText = '';
+    let metadata = { pages: 0, words: 0, characters: 0, confidence: 0.95 };
+    
+    // Extract file ID from URL if it's our custom scheme
+    if (params.file_url && params.file_url.startsWith('indexeddb://')) {
+      const fileId = params.file_url.replace('indexeddb://', '');
+      
+      // Get file info
+      const fileInfo = await fileStorage.getFileBlob(fileId);
+      
+      if (fileInfo.type === 'application/pdf') {
+        // Extract text from PDF
+        const pdfData = await fileStorage.extractTextFromPDF(fileId);
+        extractedText = pdfData.text;
+        metadata = {
+          pages: pdfData.pages,
+          words: pdfData.words,
+          characters: pdfData.characters,
+          confidence: 0.9
+        };
+      } else if (fileInfo.type.startsWith('image/')) {
+        // For images, we'd need OCR here - for now use mock
+        extractedText = `תמונה ${fileInfo.name} - נדרש OCR לחילוץ טקסט`;
+        metadata = { pages: 1, words: 10, characters: 50, confidence: 0.7 };
+      } else {
+        extractedText = `קובץ ${fileInfo.name} - סוג קובץ לא נתמך לחילוץ טקסט`;
+        metadata = { pages: 1, words: 5, characters: 20, confidence: 0.5 };
+      }
+    } else {
+      // Fallback for other URLs
+      extractedText = 'לא ניתן לחלץ טקסט מהקובץ';
+      metadata = { pages: 0, words: 0, characters: 0, confidence: 0 };
     }
-  };
+    
+    return {
+      status: "success",
+      output: {
+        extracted_text: extractedText,
+        document_type: "other", // Could be enhanced with AI classification
+        organization: "מחולץ אוטומטית",
+        amounts: [], // Could be extracted using regex
+        dates: [] // Could be extracted using regex
+      },
+      metadata
+    };
+    
+  } catch (error) {
+    console.error('Error extracting data from file:', error);
+    return {
+      status: "error",
+      output: {
+        extracted_text: `שגיאה בחילוץ נתונים: ${error.message}`,
+        document_type: "unknown",
+        organization: "",
+        amounts: [],
+        dates: []
+      },
+      metadata: { pages: 0, words: 0, characters: 0, confidence: 0 }
+    };
+  }
 };
 
 // Mock AI LLM integration

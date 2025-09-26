@@ -153,7 +153,12 @@ class MockStorage {
       processing_status: doc.processing_status || 'completed',
       tags: doc.tags || [],
       size: doc.file_size || doc.size || '0 KB',
-      file_type: doc.file_type || 'unknown'
+      file_type: doc.file_type || 'unknown',
+      name: doc.title || doc.name || 'מסמך ללא שם',
+      file_name: doc.original_filename || doc.file_name || '',
+      // Store the actual file reference
+      stored_file_id: doc.stored_file_id || null,
+      file_url: doc.file_url || null
     };
     this.documents.push(newDoc);
     this.saveToStorage('documents', this.documents);
