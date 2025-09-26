@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# MyFiles SaaS - Document Management System
+Sitemap: https://myfiles-saas.pages.dev/sitemap.xml
