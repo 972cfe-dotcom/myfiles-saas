@@ -110,7 +110,7 @@ export default function Layout({ children, currentPageName }) {
                   <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="font-bold text-slate-900 text-lg">מערכת מסמכים</h2>
+                  <h2 className="font-bold text-slate-900 text-lg">MyFiles SaaS</h2>
                   <p className="text-xs text-slate-500">ניהול מסמכים חכם</p>
                 </div>
               </div>

@@ -74,16 +74,22 @@ export const mockUser = {
   avatar: null,
   tagging_preferences: [
     {
+      id: '1',
       group_name: 'תחום עסקי',
-      tags: ['חשבונות', 'הזמנות', 'חוזים', 'הסכמים']
+      tags: ['חשבונות', 'הזמנות', 'חוזים', 'הסכמים'],
+      is_required: true
     },
     {
+      id: '2',
       group_name: 'דחיפות',
-      tags: ['דחוף', 'רגיל', 'נמוך']
+      tags: ['דחוף', 'רגיל', 'נמוך'],
+      is_required: false
     },
     {
+      id: '3',
       group_name: 'סטטוס',
-      tags: ['חדש', 'בטיפול', 'הושלם', 'נדחה']
+      tags: ['חדש', 'בטיפול', 'הושלם', 'נדחה'],
+      is_required: true
     }
   ]
 };
