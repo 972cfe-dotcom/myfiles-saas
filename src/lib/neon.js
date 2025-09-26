@@ -105,6 +105,23 @@ export class DatabaseService {
     }
   }
 
+  // Set reset token for password reset
+  static async setResetToken(userId, resetToken) {
+    try {
+      const expiresAt = new Date(Date.now() + 3600000) // 1 hour from now
+      
+      await sql`
+        UPDATE users 
+        SET reset_token = ${resetToken}, reset_token_expires = ${expiresAt.toISOString()}
+        WHERE id = ${userId}
+      `
+      
+      return true
+    } catch (error) {
+      handleDbError(error, 'set reset token')
+    }
+  }
+
   // Session operations
   static async createSession(userId, sessionToken, expiresAt, metadata = {}) {
     try {
@@ -326,6 +343,27 @@ export class DatabaseService {
     } catch (error) {
       console.warn('Failed to log activity:', error)
       // Don't throw error for logging failures
+    }
+  }
+
+  // Get user documents statistics
+  static async getUserDocumentsStats(userId) {
+    try {
+      const [stats] = await sql`
+        SELECT 
+          (SELECT COUNT(*) FROM documents WHERE user_id = ${userId}) as count,
+          (SELECT COUNT(*) FROM categories WHERE user_id = ${userId}) as categories_count,
+          (SELECT COUNT(*) FROM tags WHERE user_id = ${userId}) as tags_count
+      `
+      
+      return {
+        count: parseInt(stats.count) || 0,
+        categories_count: parseInt(stats.categories_count) || 0,
+        tags_count: parseInt(stats.tags_count) || 0
+      }
+    } catch (error) {
+      handleDbError(error, 'get user documents stats')
+      return { count: 0, categories_count: 0, tags_count: 0 }
     }
   }
 }

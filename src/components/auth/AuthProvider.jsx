@@ -17,22 +17,31 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
 
   useEffect(() => {
-    // Get initial user
-    AuthService.getCurrentUser().then(user => {
-      setUser(user)
-      if (user) {
-        loadUserProfile(user.id)
+    // Initialize auth and get initial user
+    const initAuth = async () => {
+      try {
+        const currentUser = await AuthService.getCurrentUser()
+        setUser(currentUser)
+        if (currentUser) {
+          await loadUserProfile()
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
-    })
+    }
+
+    initAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
+        const sessionUser = session?.user ?? null
+        setUser(sessionUser)
         
-        if (session?.user) {
-          await loadUserProfile(session.user.id)
+        if (sessionUser) {
+          await loadUserProfile()
         } else {
           setProfile(null)
         }
@@ -44,7 +53,7 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const loadUserProfile = async (userId) => {
+  const loadUserProfile = async () => {
     try {
       const userProfile = await AuthService.getUserProfile()
       setProfile(userProfile)

@@ -1,22 +1,49 @@
-import { supabase, TABLES } from '../lib/supabase.js'
+// Real Auth Service using Netlify Functions and Neon Database
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 export class AuthService {
+  // Helper method to make API calls
+  static async apiCall(endpoint, options = {}) {
+    const url = `${API_BASE}${endpoint}`
+    const token = localStorage.getItem('authToken')
+    
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers
+      }
+    }
+    
+    const response = await fetch(url, { ...defaultOptions, ...options })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+    }
+    
+    return response.json()
+  }
+
   // Sign up with email and password
   static async signUp(email, password, fullName) {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName
-          }
-        }
+      const data = await this.apiCall('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'register',
+          email,
+          password,
+          fullName
+        })
       })
 
-      if (error) throw error
+      if (data.token) {
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
 
-      return data
+      return { user: data.user, session: { access_token: data.token } }
     } catch (error) {
       console.error('Error signing up:', error)
       throw error
@@ -26,14 +53,21 @@ export class AuthService {
   // Sign in with email and password
   static async signIn(email, password) {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      const data = await this.apiCall('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'login',
+          email,
+          password
+        })
       })
 
-      if (error) throw error
+      if (data.token) {
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
 
-      return data
+      return { user: data.user, session: { access_token: data.token } }
     } catch (error) {
       console.error('Error signing in:', error)
       throw error
@@ -43,8 +77,23 @@ export class AuthService {
   // Sign out
   static async signOut() {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      // Call logout API to invalidate server session
+      try {
+        await this.apiCall('/auth', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'logout' })
+        })
+      } catch (error) {
+        // Even if logout API fails, clear local storage
+        console.warn('Logout API call failed, clearing local storage anyway:', error)
+      }
+      
+      // Clear local storage
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      
+      // Trigger auth state change
+      this._triggerAuthChange(null)
     } catch (error) {
       console.error('Error signing out:', error)
       throw error
@@ -54,11 +103,36 @@ export class AuthService {
   // Get current user
   static async getCurrentUser() {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser()
-      if (error) throw error
-      return user
+      const token = localStorage.getItem('authToken')
+      if (!token) return null
+
+      // First try to get from local storage
+      const cachedUser = localStorage.getItem('user')
+      if (cachedUser) {
+        try {
+          return JSON.parse(cachedUser)
+        } catch {
+          // If cached data is corrupted, continue to API call
+        }
+      }
+
+      // Verify token with server and get fresh user data
+      const data = await this.apiCall('/auth', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'verify' })
+      })
+
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user))
+        return data.user
+      }
+
+      return null
     } catch (error) {
       console.error('Error getting current user:', error)
+      // If token is invalid, clear storage
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
       return null
     }
   }
@@ -66,17 +140,12 @@ export class AuthService {
   // Get user profile with extended data
   static async getUserProfile() {
     try {
-      const user = await this.getCurrentUser()
-      if (!user) return null
+      const data = await this.apiCall('/auth', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'profile' })
+      })
 
-      const { data, error } = await supabase
-        .from(TABLES.USERS)
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) throw error
-      return data
+      return data.user
     } catch (error) {
       console.error('Error getting user profile:', error)
       return null
@@ -86,18 +155,19 @@ export class AuthService {
   // Update user profile
   static async updateProfile(updates) {
     try {
-      const user = await this.getCurrentUser()
-      if (!user) throw new Error('User not authenticated')
+      const data = await this.apiCall('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'update-profile',
+          ...updates
+        })
+      })
 
-      const { data, error } = await supabase
-        .from(TABLES.USERS)
-        .update(updates)
-        .eq('id', user.id)
-        .select()
-        .single()
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
 
-      if (error) throw error
-      return data
+      return data.user
     } catch (error) {
       console.error('Error updating profile:', error)
       throw error
@@ -107,20 +177,46 @@ export class AuthService {
   // Reset password
   static async resetPassword(email) {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`
+      await this.apiCall('/auth', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'reset-password',
+          email
+        })
       })
-
-      if (error) throw error
     } catch (error) {
       console.error('Error resetting password:', error)
       throw error
     }
   }
 
-  // Listen to auth state changes
+  // Auth state change listeners
+  static _listeners = []
+  
   static onAuthStateChange(callback) {
-    return supabase.auth.onAuthStateChange(callback)
+    this._listeners.push(callback)
+    
+    // Return unsubscribe function
+    return {
+      data: {
+        subscription: {
+          unsubscribe: () => {
+            this._listeners = this._listeners.filter(listener => listener !== callback)
+          }
+        }
+      }
+    }
+  }
+
+  static _triggerAuthChange(user) {
+    const session = user ? { user, access_token: localStorage.getItem('authToken') } : null
+    this._listeners.forEach(callback => {
+      try {
+        callback('SIGNED_IN', session)
+      } catch (error) {
+        console.error('Error in auth state change listener:', error)
+      }
+    })
   }
 
   // Check if user is authenticated
@@ -136,25 +232,12 @@ export class AuthService {
   // Get user storage stats
   static async getUserStorageStats() {
     try {
-      const user = await this.getCurrentUser()
-      if (!user) throw new Error('User not authenticated')
-
-      const { data: profile } = await supabase
-        .from(TABLES.USERS)
-        .select('storage_used, storage_limit')
-        .eq('id', user.id)
-        .single()
-
-      const { count: documentsCount } = await supabase
-        .from(TABLES.DOCUMENTS)
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-
+      const data = await this.apiCall('/user-stats')
       return {
-        storageUsed: profile?.storage_used || 0,
-        storageLimit: profile?.storage_limit || 1073741824, // 1GB
-        documentsCount: documentsCount || 0,
-        storagePercentage: Math.round((profile?.storage_used || 0) / (profile?.storage_limit || 1073741824) * 100)
+        storageUsed: data.storage_used || 0,
+        storageLimit: data.storage_limit || 1073741824, // 1GB
+        documentsCount: data.documents_count || 0,
+        storagePercentage: Math.round((data.storage_used || 0) / (data.storage_limit || 1073741824) * 100)
       }
     } catch (error) {
       console.error('Error getting storage stats:', error)
@@ -164,6 +247,18 @@ export class AuthService {
         documentsCount: 0,
         storagePercentage: 0
       }
+    }
+  }
+
+  // Initialize auth state on app start
+  static async initialize() {
+    try {
+      const user = await this.getCurrentUser()
+      if (user) {
+        this._triggerAuthChange(user)
+      }
+    } catch (error) {
+      console.error('Error initializing auth:', error)
     }
   }
 }
