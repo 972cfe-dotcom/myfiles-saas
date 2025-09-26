@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless'
 
-// Neon connection
-const DATABASE_URL = import.meta.env.VITE_DATABASE_URL || process.env.DATABASE_URL
+// Neon connection - Netlify integration
+const DATABASE_URL = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL || import.meta.env.VITE_DATABASE_URL
 const sql = neon(DATABASE_URL)
 
 // Error handler for database operations

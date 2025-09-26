@@ -187,7 +187,7 @@ CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
-    RETURN NEW;
+    return NEW;
 END;
 $$ language 'plpgsql';
 
@@ -267,22 +267,3 @@ COMMENT ON TABLE tags IS 'Flexible tagging system for documents';
 COMMENT ON TABLE search_history IS 'User search history for analytics and quick access';
 COMMENT ON TABLE user_settings IS 'User preferences and application settings';
 COMMENT ON TABLE activity_logs IS 'Audit trail of user actions';
-
--- Insert admin user (optional - for testing)
--- Password: "admin123" (hashed with bcrypt)
-INSERT INTO users (id, email, password_hash, full_name, is_verified, plan_type) 
-VALUES (
-  uuid_generate_v4(),
-  'admin@myfiles-saas.com',
-  '$2b$10$rOZhNdOKJKB9zYz0zYz0zO1K8K8K8K8K8K8K8K8K8K8K8K8K8K8K8',
-  'System Administrator',
-  true,
-  'enterprise'
-) ON CONFLICT (email) DO NOTHING;
-
-SELECT 'Database schema created successfully! Tables: ' || count(*)::text || ' created.'
-FROM information_schema.tables 
-WHERE table_schema = 'public' AND table_name = ANY(ARRAY[
-  'users', 'user_sessions', 'categories', 'documents', 'tags', 
-  'document_tags', 'search_history', 'user_settings', 'activity_logs'
-]);
