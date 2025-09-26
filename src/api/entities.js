@@ -19,6 +19,29 @@ export const Document = {
         if (key === 'created_by' && doc.created_by !== value) {
           return false;
         }
+        if (key === 'text_search' && value) {
+          // Search in multiple fields
+          const searchText = value.toLowerCase();
+          const searchFields = [
+            doc.name || '',
+            doc.description || '',
+            doc.content || '',
+            doc.file_name || '',
+            ...(doc.tags || [])
+          ].join(' ').toLowerCase();
+          
+          if (!searchFields.includes(searchText)) {
+            return false;
+          }
+        }
+        if (key === 'tags' && value && value.length > 0) {
+          // Check if document has any of the required tags
+          const docTags = doc.tags || [];
+          const hasRequiredTag = value.some(tag => docTags.includes(tag));
+          if (!hasRequiredTag) {
+            return false;
+          }
+        }
         // Add more filtering logic as needed
       }
       return true;
@@ -62,6 +85,16 @@ export const SavedSearch = {
 export const DocumentActivity = {
   async list() {
     return [];
+  },
+  
+  async create(data) {
+    // Mock activity creation - just log it
+    console.log('Document activity logged:', data);
+    return {
+      id: Date.now().toString(),
+      ...data,
+      created_at: new Date().toISOString()
+    };
   }
 };
 

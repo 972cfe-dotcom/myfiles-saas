@@ -71,7 +71,21 @@ export const mockUser = {
   name: 'משתמש דמו',
   email: 'demo@example.com',
   role: 'admin',
-  avatar: null
+  avatar: null,
+  tagging_preferences: [
+    {
+      group_name: 'תחום עסקי',
+      tags: ['חשבונות', 'הזמנות', 'חוזים', 'הסכמים']
+    },
+    {
+      group_name: 'דחיפות',
+      tags: ['דחוף', 'רגיל', 'נמוך']
+    },
+    {
+      group_name: 'סטטוס',
+      tags: ['חדש', 'בטיפול', 'הושלם', 'נדחה']
+    }
+  ]
 };
 
 export const mockSavedSearches = [
@@ -126,7 +140,14 @@ class MockStorage {
       ...doc,
       id: Date.now().toString(),
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_date: new Date().toISOString(), // Add created_date field for compatibility
+      updated_at: new Date().toISOString(),
+      created_by: 'demo@example.com',
+      document_type: doc.document_type || 'other',
+      processing_status: doc.processing_status || 'completed',
+      tags: doc.tags || [],
+      size: doc.file_size || doc.size || '0 KB',
+      file_type: doc.file_type || 'unknown'
     };
     this.documents.push(newDoc);
     this.saveToStorage('documents', this.documents);

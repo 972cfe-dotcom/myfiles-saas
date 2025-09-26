@@ -119,7 +119,8 @@ export default function UploadPage() {
         setProcessProgress((i / totalFiles) * 100);
 
         // Upload file
-        const { file_url } = await UploadFile({ file: fileItem.file });
+        const uploadResult = await UploadFile(fileItem.file);
+        const file_url = uploadResult.url;
 
         // Extract basic data using OCR
         const extractedData = await ExtractDataFromUploadedFile({
@@ -205,7 +206,7 @@ export default function UploadPage() {
       }
       
       // Fetch existing tags for suggestions
-      const allDocs = await Document.list('-created_date', 200); // Limit to recent 200 for performance
+      const allDocs = await Document.list(); // Get all documents for tags
       const existingTags = [...new Set(allDocs.flatMap(doc => doc.tags || []))];
       setAllSystemTags(existingTags);
 
