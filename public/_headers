@@ -1,0 +1,13 @@
+# Set correct MIME types for JavaScript files
+/assets/*.js
+  Content-Type: application/javascript
+
+# Set correct MIME type for CSS files  
+/assets/*.css
+  Content-Type: text/css
+
+# Security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
