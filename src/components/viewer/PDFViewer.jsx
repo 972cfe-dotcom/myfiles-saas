@@ -19,8 +19,8 @@ export default function PDFViewer({ fileId, fileName }) {
     const loadPDFJS = async () => {
       try {
         const pdfjsLib = await import('pdfjs-dist');
-        // Use the correct version for worker (matching our installed version)
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.4.149/build/pdf.worker.min.js`;
+        // Use the stable version of PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
         setPdfJS(pdfjsLib);
       } catch (error) {
         setError(`שגיאה בטעינת PDF.js: ${error.message}`);
