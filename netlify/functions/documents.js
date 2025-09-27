@@ -207,12 +207,18 @@ async function handleGetDocument(user, documentId, headers) {
 // Create new document
 async function handleCreateDocument(user, event, headers) {
   try {
+    console.log('Creating document for user:', user)
     const documentData = JSON.parse(event.body)
+    console.log('Received document data:', documentData)
     
     // Add user ID to document data
     documentData.userId = user.id
+    documentData.user_id = user.id
+    
+    console.log('Document data with user ID:', documentData)
     
     const document = await DatabaseService.createDocument(documentData)
+    console.log('Document created in database:', document)
     
     return {
       statusCode: 201,
@@ -223,11 +229,14 @@ async function handleCreateDocument(user, event, headers) {
       })
     }
   } catch (error) {
-    console.error('Error creating document:', error)
+    console.error('Error creating document in function:', error)
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      })
     }
   }
 }

@@ -11,13 +11,18 @@ export default function Auth() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    console.log('Auth: useEffect - user:', !!user, 'loading:', loading)
     if (user && !loading) {
-      navigate('/dashboard')
+      console.log('Auth: User found, navigating to dashboard...')
+      // Use replace to prevent back button issues and ensure clean navigation
+      navigate('/dashboard', { replace: true })
     }
   }, [user, loading, navigate])
 
   const handleSuccess = () => {
-    navigate('/dashboard')
+    console.log('Auth: handleSuccess called, navigating to dashboard...')
+    // Force navigation with replace to prevent back button issues
+    navigate('/dashboard', { replace: true })
   }
 
   const toggleMode = () => {

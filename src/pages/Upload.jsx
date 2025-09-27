@@ -224,20 +224,67 @@ export default function UploadPage() {
 
   const saveDocuments = async (docsToSave) => {
     try {
+      console.log('Starting save process for documents:', docsToSave);
       setProcessing(true);
       
+      // Get current user
+      const user = await User.me();
+      console.log('Current user for document save:', user);
+      
+      if (!user || !user.id) {
+        throw new Error('לא נמצא משתמש מחובר. אנא התחבר מחדש.');
+      }
+      
       for (const docData of docsToSave) {
-        const savedDoc = await Document.create(docData);
+        console.log('Saving document:', docData.title);
+        
+        // Prepare document data with proper field mapping
+        const documentToSave = {
+          // Basic info
+          title: docData.title,
+          description: docData.description || '',
+          
+          // File info
+          original_filename: docData.original_filename,
+          file_type: docData.file_type,
+          file_size: docData.file_size,
+          file_url: docData.file_url,
+          stored_file_id: docData.stored_file_id,
+          mime_type: getMimeTypeFromFileType(docData.file_type),
+          
+          // Document metadata
+          document_number: docData.document_number,
+          document_type: docData.document_type,
+          organization: docData.organization,
+          processing_status: docData.processing_status || 'processed',
+          
+          // Content
+          extracted_text: docData.extracted_text || '',
+          amounts: docData.amounts || [],
+          
+          // Tags
+          tags: docData.tags || [],
+          ai_suggested_tags: docData.ai_suggested_tags || [],
+          
+          // User association
+          user_id: user.id
+        };
+        
+        console.log('Document data prepared for save:', documentToSave);
+        
+        const savedDoc = await Document.create(documentToSave);
+        console.log('Document saved successfully:', savedDoc);
         
         // Log activity
         await DocumentActivity.create({
           document_id: savedDoc.id,
           action_type: "uploaded",
-          user_email: "current_user@example.com", // Should come from user context
+          user_email: user.email,
           details: `הועלה מסמך: ${docData.title}`
         });
       }
 
+      console.log('All documents saved successfully');
       setCurrentStep("done");
     } catch (error) {
       console.error("Save error:", error);
@@ -245,6 +292,18 @@ export default function UploadPage() {
     } finally {
       setProcessing(false);
     }
+  };
+  
+  // Helper function to get MIME type from file type
+  const getMimeTypeFromFileType = (fileType) => {
+    const typeMap = {
+      'pdf': 'application/pdf',
+      'image': 'image/jpeg',
+      'png': 'image/png', 
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg'
+    };
+    return typeMap[fileType] || 'application/octet-stream';
   };
 
   const startOver = () => {
