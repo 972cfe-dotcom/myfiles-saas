@@ -86,21 +86,27 @@ export class DatabaseService {
 
   static async updateUser(userId, updates) {
     try {
-      const setClause = Object.keys(updates)
-        .map(key => `${key} = $${Object.keys(updates).indexOf(key) + 2}`)
-        .join(', ')
+      // Build dynamic SET clause safely
+      const setEntries = Object.entries(updates)
+      const setClauses = setEntries.map(([key], index) => `${key} = $${index + 2}`)
+      const setClause = setClauses.join(', ')
       
-      const values = [userId, ...Object.values(updates)]
+      const values = Object.values(updates)
       
-      const [user] = await sql`
+      // Use sql.query for parameterized queries
+      const query = `
         UPDATE users 
-        SET ${sql.unsafe(setClause)}
+        SET ${setClause}
         WHERE id = $1
         RETURNING id, email, full_name, plan_type, storage_used, storage_limit
-      `.values(values)
+      `
+      
+      const result = await sql.query(query, [userId, ...values])
+      const user = result[0]
       
       return user
     } catch (error) {
+      console.error('Update user error:', error)
       handleDbError(error, 'update user')
     }
   }
