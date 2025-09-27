@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Document, DocumentActivity, SharedAccess } from "@/api/entities";
-import { User } from "@/api/entities";
+import { Document, DocumentActivity, SharedAccess, User } from "@/api/realEntities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,42 +33,14 @@ export default function DocumentsPage() {
   const loadDocuments = async () => {
     try {
       setLoading(true);
-      const user = await User.me();
-
-      // 1. Fetch user's own documents
-      const ownDocsPromise = Document.filter({ created_by: user.email });
-
-      // 2. Fetch grants for documents shared WITH the current user
-      const accessGrants = await SharedAccess.filter({ shared_with_email: user.email });
-      const ownerEmails = accessGrants.map(grant => grant.owner_email);
-
-      // 3. Fetch documents from owners who shared access
-      let sharedDocsPromises = [];
-      if (ownerEmails.length > 0) {
-        // Assuming the SDK can't handle an 'in' query, we fetch one by one.
-        // This is not ideal for performance but safe for SDK compatibility.
-        // We'll filter for actual documents that are shared with the user after fetching all.
-        sharedDocsPromises = ownerEmails.map(email => Document.filter({ created_by: email }));
-      }
-
-      const [ownDocs, ...sharedDocsArrays] = await Promise.all([ownDocsPromise, ...sharedDocsPromises]);
       
-      let sharedDocs = sharedDocsArrays.flat();
-
-      // Further filter sharedDocs to only include documents that have an active SharedAccess record
-      // This is important if Document.filter({ created_by: email }) fetches all documents by that owner,
-      // not just the ones specifically shared with the current user.
-      const sharedDocumentIds = new Set(accessGrants.map(grant => grant.document_id));
-      sharedDocs = sharedDocs.filter(doc => sharedDocumentIds.has(doc.id));
-
-
-      // 4. Combine and remove duplicates
-      const allDocs = [...ownDocs, ...sharedDocs];
-      const uniqueDocs = Array.from(new Map(allDocs.map(doc => [doc.id, doc])).values());
-
-      setDocuments(uniqueDocs);
+      // For now, just load user's own documents
+      // Sharing functionality will be implemented later
+      const documents = await Document.list();
+      setDocuments(documents);
     } catch (error) {
       console.error('Error loading documents:', error);
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -82,26 +53,26 @@ export default function DocumentsPage() {
     if (searchTerm) {
       filtered = filtered.filter(doc => 
         doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.extracted_text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.organization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        doc.file_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.content_extracted?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.tags?.some(tag => typeof tag === 'string' ? tag.toLowerCase().includes(searchTerm.toLowerCase()) : tag.name?.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     // Filter by document type
     if (selectedType !== "all") {
-      filtered = filtered.filter(doc => doc.document_type === selectedType);
+      filtered = filtered.filter(doc => doc.file_type === selectedType);
     }
 
     // Sort documents
     filtered.sort((a, b) => {
-      let aVal = a[sortBy];
-      let bVal = b[sortBy];
+      let aVal = a[sortBy === "created_date" ? "created_at" : sortBy];
+      let bVal = b[sortBy === "created_date" ? "created_at" : sortBy];
       
       if (sortBy === "created_date") {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
+        aVal = new Date(aVal || 0);
+        bVal = new Date(bVal || 0);
       }
 
       if (sortOrder === "asc") {
