@@ -161,6 +161,7 @@ async function handleRegister(data, headers) {
       })
     }
   } catch (error) {
+    console.error('Registration error:', error)
     return {
       statusCode: 400,
       headers,
@@ -235,32 +236,12 @@ async function handleLogin(data, headers) {
   }
 }
 
-// Handle logout (invalidate session)
+// Handle logout
 async function handleLogout(data, headers, event) {
-  const token = event.headers.authorization?.replace('Bearer ', '')
-  
-  if (!token) {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'Already logged out' })
-    }
-  }
-
-  try {
-    // In a real implementation, you might want to blacklist the token
-    // For now, we just return success as the client will clear localStorage
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'Logged out successfully' })
-    }
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
-    }
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ message: 'Logged out successfully' })
   }
 }
 
@@ -281,7 +262,6 @@ async function handleResetPassword(data, headers) {
     const user = await DatabaseService.getUserByEmail(email)
     
     if (!user) {
-      // Don't reveal if user exists or not for security
       return {
         statusCode: 200,
         headers,
@@ -291,21 +271,17 @@ async function handleResetPassword(data, headers) {
       }
     }
 
-    // Generate reset token (in production, you'd send this via email)
+    // Generate reset token
     const resetToken = generateToken({ email, type: 'reset' })
     
-    // Store reset token in database with expiration
+    // Store reset token in database
     await DatabaseService.setResetToken(user.id, resetToken)
-
-    // In production, send email with reset link here
-    console.log('Password reset token generated for:', email)
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         message: 'If this email exists, password reset instructions have been sent.',
-        // In development, include the reset token
         ...(process.env.NODE_ENV === 'development' && { resetToken })
       })
     }
@@ -449,89 +425,6 @@ async function handleUpdateProfile(data, headers, event) {
           storageUsed: user.storage_used,
           storageLimit: user.storage_limit
         }
-      })
-    }
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
-    }
-  }
-}
-
-// Handle logout (invalidate session)
-async function handleLogout(data, headers, event) {
-  const token = event.headers.authorization?.replace('Bearer ', '')
-  
-  if (!token) {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'Already logged out' })
-    }
-  }
-
-  try {
-    // In a real implementation, you might want to blacklist the token
-    // For now, we just return success as the client will clear localStorage
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'Logged out successfully' })
-    }
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
-    }
-  }
-}
-
-// Handle password reset
-async function handleResetPassword(data, headers) {
-  const { email } = data
-
-  if (!email) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: 'Email is required' })
-    }
-  }
-
-  try {
-    // Check if user exists
-    const user = await DatabaseService.getUserByEmail(email)
-    
-    if (!user) {
-      // Don't reveal if user exists or not for security
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          message: 'If this email exists, password reset instructions have been sent.' 
-        })
-      }
-    }
-
-    // Generate reset token (in production, you'd send this via email)
-    const resetToken = generateToken({ email, type: 'reset' })
-    
-    // Store reset token in database with expiration
-    await DatabaseService.setResetToken(user.id, resetToken)
-
-    // In production, send email with reset link here
-    console.log('Password reset token generated for:', email)
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        message: 'If this email exists, password reset instructions have been sent.',
-        // In development, include the reset token
-        ...(process.env.NODE_ENV === 'development' && { resetToken })
       })
     }
   } catch (error) {
