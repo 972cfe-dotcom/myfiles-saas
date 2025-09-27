@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Document } from '@/api/entities';
-import { User } from '@/api/entities';
+import { Document, User } from '@/api/realEntities';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

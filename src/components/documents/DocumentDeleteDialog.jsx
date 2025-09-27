@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Document } from '@/api/entities';
+import { Document } from '@/api/realEntities';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2 } from 'lucide-react';

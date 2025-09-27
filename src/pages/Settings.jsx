@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { User } from "@/api/entities";
+import { User } from "@/api/realEntities";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2, User as UserIcon, Tags } from "lucide-react";
 import ProfileSettings from "../components/settings/ProfileSettings";

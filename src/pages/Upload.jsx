@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Document, DocumentActivity, User } from "@/api/entities";
+import { Document, DocumentActivity, User } from "@/api/realEntities";
 import { UploadFile, ExtractDataFromUploadedFile, InvokeLLM } from "@/api/integrations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

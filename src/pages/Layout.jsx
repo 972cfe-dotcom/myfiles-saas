@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { User } from "@/api/entities";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { FileText, Search, Upload, Users, Activity, Menu, LogOut, Settings } from "lucide-react";
 import {
   Sidebar,
@@ -65,23 +65,13 @@ const navigationItems = [
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const currentUser = await User.me();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Error loading user:', error);
-      }
-    };
-    loadUser();
-  }, []);
+  const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await User.logout();
+      console.log('Layout: Handling logout...');
+      await signOut();
+      console.log('Layout: Logout completed');
     } catch (error) {
       console.error('Error logging out:', error);
     }

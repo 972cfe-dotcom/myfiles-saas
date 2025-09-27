@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Document } from "@/api/entities";
-import { User } from "@/api/entities";
-import { SharedAccess } from "@/api/entities";
+import { Document, User, SharedAccess } from "@/api/realEntities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
