@@ -82,9 +82,12 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
+      console.log('AuthProvider: Starting sign out...')
       await AuthService.signOut()
+      console.log('AuthProvider: Sign out API call completed')
       setUser(null)
       setProfile(null)
+      console.log('AuthProvider: User state cleared')
     } catch (error) {
       console.error('Error signing out:', error)
     }

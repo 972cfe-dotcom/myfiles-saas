@@ -210,9 +210,11 @@ export class AuthService {
 
   static _triggerAuthChange(user) {
     const session = user ? { user, access_token: localStorage.getItem('authToken') } : null
+    const event = user ? 'SIGNED_IN' : 'SIGNED_OUT'
+    
     this._listeners.forEach(callback => {
       try {
-        callback('SIGNED_IN', session)
+        callback(event, session)
       } catch (error) {
         console.error('Error in auth state change listener:', error)
       }
