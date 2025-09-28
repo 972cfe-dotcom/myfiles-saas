@@ -71,7 +71,7 @@ export const handler = async (event, context) => {
         return await handleLogin(data, headers)
       
       case 'verify':
-        return await handleVerifyToken(data, headers)
+        return await handleVerifyToken(data, headers, event)
       
       case 'profile':
         return await handleGetProfile(data, headers, event)
@@ -295,8 +295,8 @@ async function handleResetPassword(data, headers) {
 }
 
 // Verify token
-async function handleVerifyToken(data, headers) {
-  const { token } = data
+async function handleVerifyToken(data, headers, event) {
+  const token = data.token || (event && event.headers && event.headers.authorization ? event.headers.authorization.replace('Bearer ', '') : null)
 
   if (!token) {
     return {

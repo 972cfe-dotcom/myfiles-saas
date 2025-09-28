@@ -65,6 +65,8 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     try {
       const { user } = await AuthService.signIn(email, password)
+      // Trigger auth state change manually
+      AuthService._triggerAuthChange(user)
       return { user, error: null }
     } catch (error) {
       return { user: null, error }
@@ -74,6 +76,8 @@ export function AuthProvider({ children }) {
   const signUp = async (email, password, fullName) => {
     try {
       const { user } = await AuthService.signUp(email, password, fullName)
+      // Trigger auth state change manually
+      AuthService._triggerAuthChange(user)
       return { user, error: null }
     } catch (error) {
       return { user: null, error }
@@ -87,6 +91,8 @@ export function AuthProvider({ children }) {
       console.log('AuthProvider: Sign out API call completed')
       setUser(null)
       setProfile(null)
+      // Trigger auth state change manually
+      AuthService._triggerAuthChange(null)
       console.log('AuthProvider: User state cleared')
     } catch (error) {
       console.error('Error signing out:', error)

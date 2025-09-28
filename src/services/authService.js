@@ -119,7 +119,7 @@ export class AuthService {
       // Verify token with server and get fresh user data
       const data = await this.apiCall('/auth', {
         method: 'POST',
-        body: JSON.stringify({ action: 'verify' })
+        body: JSON.stringify({ action: 'verify', token })
       })
 
       if (data.user) {
