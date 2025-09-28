@@ -22,14 +22,21 @@ export default function LoginForm({ onToggleMode, onSuccess }) {
     setError('')
 
     try {
+      console.log('LoginForm: Starting login attempt...')
       const { user, error: signInError } = await signIn(email, password)
       
       if (signInError) {
+        console.log('LoginForm: Login error:', signInError)
         setError(getErrorMessage(signInError.message))
       } else if (user) {
-        onSuccess?.()
+        console.log('LoginForm: Login successful, calling onSuccess')
+        // Small delay to ensure state updates are processed
+        setTimeout(() => {
+          onSuccess?.()
+        }, 100)
       }
     } catch (err) {
+      console.error('LoginForm: Login exception:', err)
       setError('אירעה שגיאה בהתחברות. אנא נסה שוב.')
     } finally {
       setLoading(false)

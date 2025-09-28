@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Filter, X, Tag, Sparkles, FileText, SortAsc, SortDesc, Eye, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { safeDateParse, getDocumentDate } from "@/lib/utils";
 
 import RequiredTagsFilter from "../components/search/RequiredTagsFilter";
 import TagSearchBox from "../components/search/TagSearchBox";
@@ -166,8 +167,8 @@ export default function SearchPage() {
         let bVal = b[sortBy === "date" ? "created_date" : sortBy];
         
         if (sortBy === "date") {
-          aVal = new Date(aVal);
-          bVal = new Date(bVal);
+          aVal = getDocumentDate(a) || new Date(0);
+          bVal = getDocumentDate(b) || new Date(0);
         }
         
         if (sortOrder === "desc") {

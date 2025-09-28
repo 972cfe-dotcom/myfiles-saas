@@ -20,17 +20,18 @@ export function AuthProvider({ children }) {
     // Initialize auth and get initial user
     const initAuth = async () => {
       try {
+        console.log('AuthProvider: Initializing auth...')
         const currentUser = await AuthService.getCurrentUser()
+        console.log('AuthProvider: Current user:', !!currentUser)
         setUser(currentUser)
         if (currentUser) {
           await loadUserProfile()
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
-        // If server is not available, just continue without user
-        setUser(null)
       } finally {
         setLoading(false)
+        console.log('AuthProvider: Initialization complete')
       }
     }
 
@@ -39,6 +40,7 @@ export function AuthProvider({ children }) {
     // Listen for auth changes
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (event, session) => {
+        console.log('AuthProvider: Auth state change:', event, !!session?.user)
         const sessionUser = session?.user ?? null
         setUser(sessionUser)
         
@@ -61,20 +63,32 @@ export function AuthProvider({ children }) {
       setProfile(userProfile)
     } catch (error) {
       console.error('Error loading user profile:', error)
-      // If profile loading fails, continue without profile
-      setProfile(null)
     }
   }
 
   const signIn = async (email, password) => {
     try {
+      console.log('AuthProvider: Starting sign in...')
       const { user } = await AuthService.signIn(email, password)
-      if (user) {
-        setUser(user)
-        await loadUserProfile()
-      }
+      console.log('AuthProvider: Sign in successful, user:', user)
+      
+      // Update local state immediately
+      setUser(user)
+      setLoading(false)
+      console.log('AuthProvider: User state updated')
+      
+      // Trigger auth state change event for consistency
+      AuthService._triggerAuthChange(user)
+      console.log('AuthProvider: Auth state change triggered')
+      
+      // Load full profile
+      await loadUserProfile()
+      console.log('AuthProvider: Profile loaded')
+      
       return { user, error: null }
     } catch (error) {
+      console.error('AuthProvider: Sign in error:', error)
+      setLoading(false)
       return { user: null, error }
     }
   }
@@ -82,8 +96,20 @@ export function AuthProvider({ children }) {
   const signUp = async (email, password, fullName) => {
     try {
       const { user } = await AuthService.signUp(email, password, fullName)
+      
+      // Update local state immediately
+      setUser(user)
+      setLoading(false)
+      
+      // Trigger auth state change event for consistency
+      AuthService._triggerAuthChange(user)
+      
+      // Load full profile
+      await loadUserProfile()
+      
       return { user, error: null }
     } catch (error) {
+      setLoading(false)
       return { user: null, error }
     }
   }

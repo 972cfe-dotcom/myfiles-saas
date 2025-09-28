@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Calendar, Eye, Download, Tag, Building, Edit, Trash2, MoreVertical } from "lucide-react";
-import { format } from "date-fns";
-import { he } from "date-fns/locale";
+import { safeFormatDate, getDocumentDate } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   DropdownMenu,
@@ -167,7 +166,7 @@ export default function DocumentCard({ document, viewMode, onView, onUpdate, onD
               <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                 <div className="flex items-center gap-1 text-xs text-slate-500">
                   <Calendar className="w-3 h-3" />
-                  {format(new Date(document.created_date), 'dd/MM/yy', { locale: he })}
+                  {safeFormatDate(getDocumentDate(document), 'dd/MM/yy')}
                 </div>
                 
                 <div className="flex gap-1">
@@ -226,7 +225,7 @@ export default function DocumentCard({ document, viewMode, onView, onUpdate, onD
                     )}
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {format(new Date(document.created_date), 'dd/MM/yy', { locale: he })}
+                      {safeFormatDate(getDocumentDate(document), 'dd/MM/yy')}
                     </span>
                   </div>
                 </div>

@@ -9,8 +9,7 @@ import { Search, FileText, Download, Eye, Calendar, Tag, Filter, Plus, SortAsc, 
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { format } from "date-fns";
-import { he } from "date-fns/locale";
+import { safeDateParse, getDocumentDate } from "@/lib/utils";
 
 import DocumentCard from "../components/documents/DocumentCard";
 import DocumentStats from "../components/documents/DocumentStats";
@@ -67,12 +66,15 @@ export default function DocumentsPage() {
 
     // Sort documents
     filtered.sort((a, b) => {
-      let aVal = a[sortBy === "created_date" ? "created_at" : sortBy];
-      let bVal = b[sortBy === "created_date" ? "created_at" : sortBy];
+      let aVal, bVal;
       
       if (sortBy === "created_date") {
-        aVal = new Date(aVal || 0);
-        bVal = new Date(bVal || 0);
+        // Use safe date parsing for date comparison
+        aVal = getDocumentDate(a) || new Date(0);
+        bVal = getDocumentDate(b) || new Date(0);
+      } else {
+        aVal = a[sortBy];
+        bVal = b[sortBy];
       }
 
       if (sortOrder === "asc") {

@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Calendar, Building, Tag, Eye, Download } from 'lucide-react';
-import { format } from 'date-fns';
-import { he } from 'date-fns/locale';
+import { safeFormatDate, getDocumentDate } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import DocumentViewerModal from '../common/DocumentViewerModal';
 
@@ -139,7 +138,7 @@ export default function SearchResults({
                             )}
                             <span className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-                              {format(new Date(document.created_date), 'dd/MM/yyyy', { locale: he })}
+                              {safeFormatDate(getDocumentDate(document), 'dd/MM/yyyy')}
                             </span>
                             {document.organization && (
                               <span className="flex items-center gap-1">

@@ -37,7 +37,10 @@ function _getCurrentPage(url) {
 function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
 
+    console.log('ProtectedRoute: user:', !!user, 'loading:', loading)
+
     if (loading) {
+        console.log('ProtectedRoute: Still loading...')
         return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -46,9 +49,11 @@ function ProtectedRoute({ children }) {
     }
 
     if (!user) {
+        console.log('ProtectedRoute: No user, redirecting to auth')
         return <Navigate to="/auth" replace />;
     }
 
+    console.log('ProtectedRoute: User authenticated, showing content')
     return children;
 }
 
@@ -60,7 +65,7 @@ function PagesContent() {
     
     return (
         <Routes>
-            <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
+            <Route path="/auth" element={<Auth />} />
             
             <Route path="/" element={
                 <ProtectedRoute>

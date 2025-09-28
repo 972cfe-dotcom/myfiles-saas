@@ -168,27 +168,53 @@ export class DatabaseService {
   // Document operations
   static async createDocument(documentData) {
     try {
-      console.log('🗃️ Database createDocument called with:', documentData)
+      console.log('Creating document with data:', documentData)
       
+      // Map incoming data to database fields
+      const mappedData = {
+        userId: documentData.userId || documentData.user_id,
+        title: documentData.title,
+        description: documentData.description || '',
+        fileName: documentData.original_filename || documentData.fileName,
+        fileType: documentData.file_type || documentData.fileType,
+        fileSize: documentData.file_size || documentData.fileSize,
+        fileUrl: documentData.file_url || documentData.fileUrl,
+        thumbnailUrl: documentData.thumbnail_url || documentData.thumbnailUrl,
+        mimeType: documentData.mime_type || documentData.mimeType || getContentType(documentData.file_type),
+        contentExtracted: documentData.extracted_text || documentData.contentExtracted || '',
+        categoryId: documentData.category_id || documentData.categoryId,
+        fileHash: documentData.file_hash || documentData.fileHash,
+        documentNumber: documentData.document_number,
+        storedFileId: documentData.stored_file_id,
+        documentType: documentData.document_type,
+        organization: documentData.organization,
+        tags: documentData.tags || [],
+        aiSuggestedTags: documentData.ai_suggested_tags || [],
+        amounts: documentData.amounts || [],
+        processingStatus: documentData.processing_status || 'processed'
+      }
+
       const [document] = await sql`
         INSERT INTO documents (
           user_id, title, description, file_name, file_type, file_size,
-          file_url, thumbnail_url, mime_type, content_extracted, category_id, file_hash
+          file_url, thumbnail_url, mime_type, content_extracted, category_id, file_hash,
+          document_number, stored_file_id, document_type, organization, processing_status
         )
         VALUES (
-          ${documentData.userId}, ${documentData.title}, ${documentData.description || ''},
-          ${documentData.fileName || documentData.file_name}, ${documentData.fileType || documentData.file_type}, ${documentData.fileSize || documentData.file_size},
-          ${documentData.fileUrl || documentData.file_url}, ${documentData.thumbnailUrl || documentData.thumbnail_url}, ${documentData.mimeType || documentData.mime_type},
-          ${documentData.contentExtracted || documentData.content_extracted || documentData.extracted_text}, 
-          ${documentData.categoryId || documentData.category_id}, ${documentData.fileHash || documentData.file_hash}
+          ${mappedData.userId}, ${mappedData.title}, ${mappedData.description},
+          ${mappedData.fileName}, ${mappedData.fileType}, ${mappedData.fileSize},
+          ${mappedData.fileUrl}, ${mappedData.thumbnailUrl}, ${mappedData.mimeType},
+          ${mappedData.contentExtracted}, ${mappedData.categoryId}, ${mappedData.fileHash},
+          ${mappedData.documentNumber}, ${mappedData.storedFileId}, ${mappedData.documentType},
+          ${mappedData.organization}, ${mappedData.processingStatus}
         )
         RETURNING *
       `
       
-      console.log('✅ Document created successfully in DB:', document)
+      console.log('Document created successfully:', document)
       return document
     } catch (error) {
-      console.error('❌ Database error in createDocument:', error)
+      console.error('Error creating document in database:', error)
       handleDbError(error, 'create document')
     }
   }
@@ -378,6 +404,21 @@ export class DatabaseService {
       return { count: 0, categories_count: 0, tags_count: 0 }
     }
   }
+}
+
+// Helper function to get content type from file type
+function getContentType(fileType) {
+  if (!fileType) return 'application/octet-stream'
+  
+  const typeMap = {
+    'pdf': 'application/pdf',
+    'image': 'image/jpeg',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg'
+  }
+  
+  return typeMap[fileType] || fileType
 }
 
 export default DatabaseService

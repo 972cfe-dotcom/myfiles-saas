@@ -71,7 +71,7 @@ export const handler = async (event, context) => {
         return await handleLogin(data, headers)
       
       case 'verify':
-        return await handleVerifyToken(data, headers)
+        return await handleVerifyToken(data, headers, event)
       
       case 'profile':
         return await handleGetProfile(data, headers, event)
@@ -294,19 +294,20 @@ async function handleResetPassword(data, headers) {
   }
 }
 
-// Verify token
-async function handleVerifyToken(data, headers) {
-  const { token } = data
-
-  if (!token) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: 'Token is required' })
-    }
-  }
-
+// Verify token (from Authorization header)
+async function handleVerifyToken(data, headers, event) {
   try {
+    // Extract token from Authorization header
+    const authHeader = event.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Authorization header required' })
+      }
+    }
+
+    const token = authHeader.replace('Bearer ', '')
     const decoded = verifyToken(token)
     const user = await DatabaseService.getUserById(decoded.userId)
 
@@ -334,13 +335,11 @@ async function handleVerifyToken(data, headers) {
       })
     }
   } catch (error) {
+    console.error('Token verification error:', error)
     return {
-      statusCode: 400,
+      statusCode: 401,
       headers,
-      body: JSON.stringify({ 
-        valid: false, 
-        error: 'Invalid token' 
-      })
+      body: JSON.stringify({ error: 'Invalid token' })
     }
   }
 }
