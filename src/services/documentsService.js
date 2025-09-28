@@ -82,22 +82,33 @@ export class DocumentsService {
   static async createDocument(documentData) {
     console.log('💾 Creating document with data:', documentData)
     
-    // Map frontend field names to database field names
+    // Send data with both camelCase and snake_case field names for compatibility
     const dbDocumentData = {
       title: documentData.title,
       description: documentData.description || '',
+      // Send both formats
       fileName: documentData.original_filename || documentData.file_name,
+      file_name: documentData.original_filename || documentData.file_name,
       fileType: documentData.file_type,
+      file_type: documentData.file_type,
       fileSize: documentData.file_size,
+      file_size: documentData.file_size,
       fileUrl: documentData.file_url,
+      file_url: documentData.file_url,
       thumbnailUrl: documentData.thumbnail_url || null,
+      thumbnail_url: documentData.thumbnail_url || null,
       mimeType: documentData.mime_type || null,
+      mime_type: documentData.mime_type || null,
       contentExtracted: documentData.extracted_text || documentData.content_extracted,
+      content_extracted: documentData.extracted_text || documentData.content_extracted,
+      extracted_text: documentData.extracted_text,
       categoryId: documentData.category_id || null,
-      fileHash: documentData.file_hash || null
+      category_id: documentData.category_id || null,
+      fileHash: documentData.file_hash || null,
+      file_hash: documentData.file_hash || null
     }
 
-    console.log('🗃️ Mapped DB data:', dbDocumentData)
+    console.log('🗃️ Mapped DB data with both formats:', dbDocumentData)
 
     const data = await this.apiCall('/documents', {
       method: 'POST',

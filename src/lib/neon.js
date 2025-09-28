@@ -168,21 +168,27 @@ export class DatabaseService {
   // Document operations
   static async createDocument(documentData) {
     try {
+      console.log('🗃️ Database createDocument called with:', documentData)
+      
       const [document] = await sql`
         INSERT INTO documents (
           user_id, title, description, file_name, file_type, file_size,
           file_url, thumbnail_url, mime_type, content_extracted, category_id, file_hash
         )
         VALUES (
-          ${documentData.userId}, ${documentData.title}, ${documentData.description},
-          ${documentData.fileName}, ${documentData.fileType}, ${documentData.fileSize},
-          ${documentData.fileUrl}, ${documentData.thumbnailUrl}, ${documentData.mimeType},
-          ${documentData.contentExtracted}, ${documentData.categoryId}, ${documentData.fileHash}
+          ${documentData.userId}, ${documentData.title}, ${documentData.description || ''},
+          ${documentData.fileName || documentData.file_name}, ${documentData.fileType || documentData.file_type}, ${documentData.fileSize || documentData.file_size},
+          ${documentData.fileUrl || documentData.file_url}, ${documentData.thumbnailUrl || documentData.thumbnail_url}, ${documentData.mimeType || documentData.mime_type},
+          ${documentData.contentExtracted || documentData.content_extracted || documentData.extracted_text}, 
+          ${documentData.categoryId || documentData.category_id}, ${documentData.fileHash || documentData.file_hash}
         )
         RETURNING *
       `
+      
+      console.log('✅ Document created successfully in DB:', document)
       return document
     } catch (error) {
+      console.error('❌ Database error in createDocument:', error)
       handleDbError(error, 'create document')
     }
   }
