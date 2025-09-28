@@ -43,6 +43,36 @@ export class DocumentsService {
       return data.documents || []
     } catch (error) {
       console.error('Error fetching documents:', error)
+      // Fallback: get from localStorage
+      return this.getUserDocumentsLocal(options)
+    }
+  }
+
+  // Local fallback for getting documents
+  static getUserDocumentsLocal(options = {}) {
+    try {
+      const documents = JSON.parse(localStorage.getItem('documents') || '[]')
+      
+      let filtered = [...documents]
+      
+      // Apply search filter
+      if (options.search) {
+        const searchLower = options.search.toLowerCase()
+        filtered = filtered.filter(doc => 
+          doc.title?.toLowerCase().includes(searchLower) ||
+          doc.description?.toLowerCase().includes(searchLower) ||
+          doc.file_name?.toLowerCase().includes(searchLower)
+        )
+      }
+      
+      // Apply limit
+      if (options.limit) {
+        filtered = filtered.slice(0, options.limit)
+      }
+      
+      return filtered
+    } catch (error) {
+      console.error('Error getting local documents:', error)
       return []
     }
   }
@@ -72,7 +102,34 @@ export class DocumentsService {
       return data.document
     } catch (error) {
       console.error('Error creating document:', error)
-      throw error
+      // Fallback: save to localStorage when server is not available
+      return this.createDocumentLocal(documentData)
+    }
+  }
+
+  // Local fallback for creating documents
+  static createDocumentLocal(documentData) {
+    try {
+      // Get existing documents from localStorage
+      const existingDocs = JSON.parse(localStorage.getItem('documents') || '[]')
+      
+      // Create new document with ID
+      const newDocument = {
+        ...documentData,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      // Add to list and save
+      existingDocs.push(newDocument)
+      localStorage.setItem('documents', JSON.stringify(existingDocs))
+      
+      console.log('Document saved locally:', newDocument.title)
+      return newDocument
+    } catch (error) {
+      console.error('Error saving document locally:', error)
+      throw new Error('Failed to save document')
     }
   }
 
