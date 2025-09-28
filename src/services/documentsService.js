@@ -1,30 +1,35 @@
 // Real Documents Service using Netlify Functions and Neon Database
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://symphonious-cuchufli-e6125a.netlify.app/.netlify/functions'
+const IS_DEVELOPMENT = import.meta.env.DEV
 
 export class DocumentsService {
-  // Helper method to make API calls with auth
+  // Helper method to make API calls with auth - PRODUCTION ONLY
   static async apiCall(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`
     const token = localStorage.getItem('authToken')
     
-    console.log('🔍 API Call Debug:', {
+    console.log('🔍 API Call to PRODUCTION:', {
       endpoint,
       url,
       hasToken: !!token,
       method: options.method || 'GET'
     })
     
+    if (!token) {
+      throw new Error('No authentication token found. Please log in first.')
+    }
+    
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        'Authorization': `Bearer ${token}`,
         ...options.headers
       }
     }
     
     const response = await fetch(url, { ...defaultOptions, ...options })
     
-    console.log('📡 API Response:', {
+    console.log('📡 PRODUCTION API Response:', {
       status: response.status,
       ok: response.ok,
       url: response.url
@@ -32,33 +37,29 @@ export class DocumentsService {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      console.error('❌ API Error:', errorData)
+      console.error('❌ PRODUCTION API Error:', errorData)
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
     }
     
     return response.json()
   }
 
-  // Get user documents
+  // Get user documents - PRODUCTION ONLY
   static async getUserDocuments(options = {}) {
-    try {
-      const params = new URLSearchParams()
-      if (options.categoryId) params.append('categoryId', options.categoryId)
-      if (options.search) params.append('search', options.search)
-      if (options.limit) params.append('limit', options.limit)
-      
-      const queryString = params.toString()
-      const endpoint = `/documents${queryString ? `?${queryString}` : ''}`
-      
-      const data = await this.apiCall(endpoint, {
-        method: 'GET'
-      })
+    const params = new URLSearchParams()
+    if (options.categoryId) params.append('categoryId', options.categoryId)
+    if (options.search) params.append('search', options.search)
+    if (options.limit) params.append('limit', options.limit)
+    
+    const queryString = params.toString()
+    const endpoint = `/documents${queryString ? `?${queryString}` : ''}`
+    
+    const data = await this.apiCall(endpoint, {
+      method: 'GET'
+    })
 
-      return data.documents || []
-    } catch (error) {
-      console.error('Error fetching documents:', error)
-      throw new Error(`Failed to fetch documents: ${error.message}`)
-    }
+    console.log('📄 Documents fetched from NEON DB:', data.documents?.length || 0, 'documents')
+    return data.documents || []
   }
 
 
@@ -77,39 +78,34 @@ export class DocumentsService {
     }
   }
 
-  // Create new document
+  // Create new document - PRODUCTION ONLY
   static async createDocument(documentData) {
-    try {
-      console.log('💾 Creating document with data:', documentData)
-      
-      // Map frontend field names to database field names
-      const dbDocumentData = {
-        title: documentData.title,
-        description: documentData.description || '',
-        fileName: documentData.original_filename || documentData.file_name,
-        fileType: documentData.file_type,
-        fileSize: documentData.file_size,
-        fileUrl: documentData.file_url,
-        thumbnailUrl: documentData.thumbnail_url || null,
-        mimeType: documentData.mime_type || null,
-        contentExtracted: documentData.extracted_text || documentData.content_extracted,
-        categoryId: documentData.category_id || null,
-        fileHash: documentData.file_hash || null
-      }
-
-      console.log('🗃️ Mapped DB data:', dbDocumentData)
-
-      const data = await this.apiCall('/documents', {
-        method: 'POST',
-        body: JSON.stringify(dbDocumentData)
-      })
-
-      console.log('✅ Document created successfully:', data.document)
-      return data.document
-    } catch (error) {
-      console.error('❌ Error creating document:', error)
-      throw new Error(`Failed to save document: ${error.message}`)
+    console.log('💾 Creating document with data:', documentData)
+    
+    // Map frontend field names to database field names
+    const dbDocumentData = {
+      title: documentData.title,
+      description: documentData.description || '',
+      fileName: documentData.original_filename || documentData.file_name,
+      fileType: documentData.file_type,
+      fileSize: documentData.file_size,
+      fileUrl: documentData.file_url,
+      thumbnailUrl: documentData.thumbnail_url || null,
+      mimeType: documentData.mime_type || null,
+      contentExtracted: documentData.extracted_text || documentData.content_extracted,
+      categoryId: documentData.category_id || null,
+      fileHash: documentData.file_hash || null
     }
+
+    console.log('🗃️ Mapped DB data:', dbDocumentData)
+
+    const data = await this.apiCall('/documents', {
+      method: 'POST',
+      body: JSON.stringify(dbDocumentData)
+    })
+
+    console.log('✅ Document created successfully in NEON DB:', data.document)
+    return data.document
   }
 
 

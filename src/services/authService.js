@@ -2,10 +2,17 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://symphonious-cuchufli-e6125a.netlify.app/.netlify/functions'
 
 export class AuthService {
-  // Helper method to make API calls
+  // Helper method to make API calls - PRODUCTION ONLY
   static async apiCall(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`
     const token = localStorage.getItem('authToken')
+    
+    console.log('🔐 Auth API Call to PRODUCTION:', {
+      endpoint,
+      url,
+      hasToken: !!token,
+      method: options.method || 'GET'
+    })
     
     const defaultOptions = {
       headers: {
@@ -15,20 +22,21 @@ export class AuthService {
       }
     }
     
-    try {
-      const response = await fetch(url, { ...defaultOptions, ...options })
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-      
-      return response.json()
-    } catch (error) {
-      // Log network errors but don't crash the app
-      console.error('Network error in AuthService:', error.message)
-      throw error
+    const response = await fetch(url, { ...defaultOptions, ...options })
+    
+    console.log('🔐 PRODUCTION Auth Response:', {
+      status: response.status,
+      ok: response.ok,
+      url: response.url
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('❌ PRODUCTION Auth Error:', errorData)
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
     }
+    
+    return response.json()
   }
 
   // Sign up with email and password
