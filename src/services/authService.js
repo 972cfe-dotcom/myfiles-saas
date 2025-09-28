@@ -1,5 +1,5 @@
 // Real Auth Service using Netlify Functions and Neon Database
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/.netlify/functions'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://symphonious-cuchufli-e6125a.netlify.app/.netlify/functions'
 
 export class AuthService {
   // Helper method to make API calls

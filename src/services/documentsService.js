@@ -1,11 +1,18 @@
 // Real Documents Service using Netlify Functions and Neon Database
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/.netlify/functions'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://symphonious-cuchufli-e6125a.netlify.app/.netlify/functions'
 
 export class DocumentsService {
   // Helper method to make API calls with auth
   static async apiCall(endpoint, options = {}) {
     const url = `${API_BASE}${endpoint}`
     const token = localStorage.getItem('authToken')
+    
+    console.log('🔍 API Call Debug:', {
+      endpoint,
+      url,
+      hasToken: !!token,
+      method: options.method || 'GET'
+    })
     
     const defaultOptions = {
       headers: {
@@ -17,8 +24,15 @@ export class DocumentsService {
     
     const response = await fetch(url, { ...defaultOptions, ...options })
     
+    console.log('📡 API Response:', {
+      status: response.status,
+      ok: response.ok,
+      url: response.url
+    })
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      console.error('❌ API Error:', errorData)
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
     }
     
@@ -43,39 +57,11 @@ export class DocumentsService {
       return data.documents || []
     } catch (error) {
       console.error('Error fetching documents:', error)
-      // Fallback: get from localStorage
-      return this.getUserDocumentsLocal(options)
+      throw new Error(`Failed to fetch documents: ${error.message}`)
     }
   }
 
-  // Local fallback for getting documents
-  static getUserDocumentsLocal(options = {}) {
-    try {
-      const documents = JSON.parse(localStorage.getItem('documents') || '[]')
-      
-      let filtered = [...documents]
-      
-      // Apply search filter
-      if (options.search) {
-        const searchLower = options.search.toLowerCase()
-        filtered = filtered.filter(doc => 
-          doc.title?.toLowerCase().includes(searchLower) ||
-          doc.description?.toLowerCase().includes(searchLower) ||
-          doc.file_name?.toLowerCase().includes(searchLower)
-        )
-      }
-      
-      // Apply limit
-      if (options.limit) {
-        filtered = filtered.slice(0, options.limit)
-      }
-      
-      return filtered
-    } catch (error) {
-      console.error('Error getting local documents:', error)
-      return []
-    }
-  }
+
 
   // Get single document
   static async getDocument(documentId) {
@@ -94,44 +80,39 @@ export class DocumentsService {
   // Create new document
   static async createDocument(documentData) {
     try {
+      console.log('💾 Creating document with data:', documentData)
+      
+      // Map frontend field names to database field names
+      const dbDocumentData = {
+        title: documentData.title,
+        description: documentData.description || '',
+        fileName: documentData.original_filename || documentData.file_name,
+        fileType: documentData.file_type,
+        fileSize: documentData.file_size,
+        fileUrl: documentData.file_url,
+        thumbnailUrl: documentData.thumbnail_url || null,
+        mimeType: documentData.mime_type || null,
+        contentExtracted: documentData.extracted_text || documentData.content_extracted,
+        categoryId: documentData.category_id || null,
+        fileHash: documentData.file_hash || null
+      }
+
+      console.log('🗃️ Mapped DB data:', dbDocumentData)
+
       const data = await this.apiCall('/documents', {
         method: 'POST',
-        body: JSON.stringify(documentData)
+        body: JSON.stringify(dbDocumentData)
       })
 
+      console.log('✅ Document created successfully:', data.document)
       return data.document
     } catch (error) {
-      console.error('Error creating document:', error)
-      // Fallback: save to localStorage when server is not available
-      return this.createDocumentLocal(documentData)
+      console.error('❌ Error creating document:', error)
+      throw new Error(`Failed to save document: ${error.message}`)
     }
   }
 
-  // Local fallback for creating documents
-  static createDocumentLocal(documentData) {
-    try {
-      // Get existing documents from localStorage
-      const existingDocs = JSON.parse(localStorage.getItem('documents') || '[]')
-      
-      // Create new document with ID
-      const newDocument = {
-        ...documentData,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      
-      // Add to list and save
-      existingDocs.push(newDocument)
-      localStorage.setItem('documents', JSON.stringify(existingDocs))
-      
-      console.log('Document saved locally:', newDocument.title)
-      return newDocument
-    } catch (error) {
-      console.error('Error saving document locally:', error)
-      throw new Error('Failed to save document')
-    }
-  }
+
 
   // Update document
   static async updateDocument(documentId, updates) {
