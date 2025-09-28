@@ -65,6 +65,10 @@ export function AuthProvider({ children }) {
   const signIn = async (email, password) => {
     try {
       const { user } = await AuthService.signIn(email, password)
+      if (user) {
+        setUser(user)
+        await loadUserProfile()
+      }
       return { user, error: null }
     } catch (error) {
       return { user: null, error }
