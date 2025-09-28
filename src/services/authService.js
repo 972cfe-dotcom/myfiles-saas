@@ -15,14 +15,20 @@ export class AuthService {
       }
     }
     
-    const response = await fetch(url, { ...defaultOptions, ...options })
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+    try {
+      const response = await fetch(url, { ...defaultOptions, ...options })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+      }
+      
+      return response.json()
+    } catch (error) {
+      // Log network errors but don't crash the app
+      console.error('Network error in AuthService:', error.message)
+      throw error
     }
-    
-    return response.json()
   }
 
   // Sign up with email and password

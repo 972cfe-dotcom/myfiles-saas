@@ -27,6 +27,8 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
+        // If server is not available, just continue without user
+        setUser(null)
       } finally {
         setLoading(false)
       }
@@ -59,6 +61,8 @@ export function AuthProvider({ children }) {
       setProfile(userProfile)
     } catch (error) {
       console.error('Error loading user profile:', error)
+      // If profile loading fails, continue without profile
+      setProfile(null)
     }
   }
 
